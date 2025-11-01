@@ -27,7 +27,7 @@ The demo visually highlights the stark differences in performance, execution tim
 
 A detailed walkthrough of the comparison dashboard, an explanation of the underlying algorithms, and an analysis of the results is available on YouTube.
 
-[![YouTube Demo Video Thumbnail](https://img.youtube.com/vi/YOUTUBE_VIDEO_ID_HERE/0.jpg)](https://www.youtube.com/watch?v=YOUTUBE_VIDEO_ID_HERE)
+[![YouTube Demo Video Thumbnail](https://img.youtube.com/vi/HyHQsSkwJB8/0.jpg)](https://www.youtube.com/watch?v=HyHQsSkwJB8)
 
 > **Note:** Please replace `YOUTUBE_VIDEO_ID_HERE` with the actual ID of your YouTube video.
 
