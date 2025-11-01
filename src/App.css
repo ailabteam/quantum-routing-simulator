@@ -154,3 +154,16 @@ pre {
     font-size: 0.95em;
     line-height: 1.5;
 }
+/* Thêm vào cuối file src/App.css */
+.dashboard { display: flex; flex-direction: column; height: 100vh; font-family: sans-serif; }
+.header { padding: 1rem; border-bottom: 1px solid #ccc; text-align: center; }
+.header button { font-size: 1.2rem; padding: 10px 20px; cursor: pointer; }
+.header button:disabled { cursor: not-allowed; opacity: 0.5; }
+.comparison-container { display: flex; flex-grow: 1; }
+.solver-panel { flex: 1; padding: 1rem; border-left: 1px solid #ccc; display: flex; flex-direction: column; }
+.solver-panel:first-child { border-left: none; }
+.solver-panel h2 { text-align: center; margin-top: 0; }
+.results { font-family: monospace; white-space: pre-wrap; background: #f4f4f4; padding: 1rem; border-radius: 5px; margin-top: 1rem; }
+.graph-container { flex-grow: 1; }
+.loading-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.8); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; }
+.spinner { /* ... (style spinner từ PoC #3) ... */ }
