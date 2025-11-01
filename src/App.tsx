@@ -19,64 +19,85 @@ interface TaskStatus {
   error_message?: string;
 }
 
+interface ProblemSpec {
+    num_nodes: number;
+    start_node: number;
+    end_node: number;
+}
+
 // --- Component Chính ---
 function App() {
   const [taskStatus, setTaskStatus] = useState<TaskStatus>({ status: 'idle' });
   const [taskId, setTaskId] = useState<string | null>(null);
+  // Lưu trữ thông tin bài toán để truyền xuống component con
+  const [problem, setProblem] = useState<ProblemSpec>({ num_nodes: 5, start_node: 0, end_node: 4 });
   const intervalRef = useRef<number | null>(null);
 
   const startSolving = () => {
     setTaskId(null);
     setTaskStatus({ status: 'pending' });
-    // Dọn dẹp interval cũ nếu có
     if (intervalRef.current) clearInterval(intervalRef.current);
+
+    // Có thể thêm logic để thay đổi bài toán ở đây trong tương lai
+    const currentProblem = { num_nodes: 5, start_node: 0, end_node: 4 };
+    setProblem(currentProblem);
 
     fetch('/api/solve-routing', { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ num_nodes: 5, start_node: 0, end_node: 4 })
+        body: JSON.stringify(currentProblem)
     })
     .then(res => res.json())
     .then(data => {
-        setTaskId(data.task_id);
-        // Ngay khi có task_id, bắt đầu vòng lặp kiểm tra trạng thái
-        setTaskStatus(prev => ({ ...prev, status: 'running' }));
+        if(data.task_id) {
+            setTaskId(data.task_id);
+            setTaskStatus(prev => ({ ...prev, status: 'running' }));
+        } else {
+            throw new Error("Failed to get task_id from server.");
+        }
     })
-    .catch(() => setTaskStatus({ status: 'failed', error_message: "Failed to start task." }));
+    .catch((err) => {
+        console.error(err);
+        setTaskStatus({ status: 'failed', error_message: "Failed to start task." });
+    });
   };
 
   // Hook để kiểm tra trạng thái
   useEffect(() => {
-    // Chỉ chạy khi status là 'running' và đã có task_id
     if (taskStatus.status !== 'running' || !taskId) {
         if (intervalRef.current) clearInterval(intervalRef.current);
         return;
     }
     
-    // Đặt một interval mới
     intervalRef.current = window.setInterval(() => {
         console.log(`Polling status for task: ${taskId}`);
         fetch(`/api/get-status/${taskId}`)
-        .then(res => res.json())
+        .then(res => {
+            if (!res.ok) throw new Error("Failed to fetch status");
+            return res.json();
+        })
         .then((data: TaskStatus) => {
             console.log("Received status update:", data);
-            setTaskStatus(data); // Cập nhật toàn bộ trạng thái
+            setTaskStatus(data);
             
-            // Nếu task đã kết thúc, dừng vòng lặp
             if (data.status === 'finished' || data.status === 'failed') {
                 if (intervalRef.current) clearInterval(intervalRef.current);
             }
+        })
+        .catch(err => {
+            console.error("Polling error:", err);
+            // Có thể dừng polling nếu có lỗi liên tục
         });
-    }, 2500); // 2.5 giây một lần
+    }, 2500);
 
-    // Dọn dẹp khi component unmount hoặc khi các dependency thay đổi
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [taskStatus.status, taskId]); // Chạy lại khi status hoặc taskId thay đổi
+  }, [taskStatus.status, taskId]);
 
+  // Hàm tiện ích để hiển thị text trạng thái
   const getStatusText = (solverType: 'classical' | 'quantum') => {
     if (taskStatus.status === 'idle') return 'Waiting to start...';
     if (taskStatus.status === 'pending') return 'Initializing task...';
-    if (taskStatus.status === 'failed') return `Task Failed: ${taskStatus.error_message}`;
+    if (taskStatus.status === 'failed') return `Task Failed: ${taskStatus.error_message || 'Unknown Error'}`;
     
     if (solverType === 'classical') {
         return taskStatus.classical_result ? 'Completed!' : 'Solving...';
@@ -84,18 +105,28 @@ function App() {
     
     if (solverType === 'quantum') {
         if (taskStatus.quantum_result) return 'Completed!';
-        if (taskStatus.current_step === 'RUNNING_QUANTUM') return 'Running Simulation (~5-6 mins)...';
+        if (taskStatus.current_step === 'RUNNING_QUANTUM') return 'Running Quantum Simulation (~6 mins)...';
         if (taskStatus.current_step === 'RUNNING_CLASSICAL') return 'Waiting for Classical Solver...';
         return 'Solving...';
     }
     return 'Loading...';
   }
 
+  // Component con để render mỗi card so sánh
   const SolverCard = ({ title, result, isLoading, statusText }: { title: string, result?: SolverResult, isLoading: boolean, statusText: string }) => (
     <div className="solver-panel">
       <h2>{title}</h2>
       <div className="graph-container">
-        {taskStatus.network && <NetworkDisplay network={taskStatus.network} path={result?.path || null} />}
+        {taskStatus.network ? (
+            <NetworkDisplay 
+                network={taskStatus.network} 
+                path={result?.path || null}
+                startNode={problem.start_node}
+                endNode={problem.end_node}
+            />
+        ) : (
+            <div className="placeholder-graph">Generate a problem to see the network.</div>
+        )}
         {isLoading && (
           <div className="loading-overlay">
             <div className="spinner"></div>
@@ -116,24 +147,38 @@ function App() {
       <header className="header">
         <h1>Quantum vs. Classical Routing</h1>
         <button onClick={startSolving} disabled={taskStatus.status === 'running' || taskStatus.status === 'pending'}>
-          {(taskStatus.status === 'running' || taskStatus.status === 'pending') ? 'Solving in Background...' : 'Generate New Problem & Solve'}
+          {(taskStatus.status === 'running' || taskStatus.status === 'pending') ? 'Solving in Background...' : 'Generate 5-Node Problem & Solve'}
         </button>
       </header>
-      <div className="comparison-container">
+      <main className="comparison-container">
+        <div className="side-panel">
+          <div className="explanation-box">
+            <h3>About This PoC</h3>
+            <p>This demo provides a side-by-side comparison of a **Classical** and a **Quantum** algorithm for solving a network routing problem (Shortest Path).</p>
+            <h4>The Race:</h4>
+            <ol>
+              <li><strong>The Problem:</strong> A random network graph is generated. The goal is to find the lowest-cost path between the <span style={{color: '#2E8B57', fontWeight: 'bold'}}>green (start)</span> and <span style={{color: '#C71585', fontWeight: 'bold'}}>pink (end)</span> nodes.</li>
+              <li><strong>Classical Solver (Dijkstra):</strong> An exact, greedy algorithm that guarantees the optimal solution very quickly for this scale.</li>
+              <li><strong>Quantum Solver (QAOA):</strong> An approximate, heuristic algorithm simulated on a classical computer. It explores a vast solution space using quantum principles but is computationally expensive and doesn't guarantee the optimal solution.</li>
+            </ol>
+            <p>This PoC highlights the current state of quantum computing: while classical algorithms are superior for many current problems, this platform allows us to research and benchmark quantum approaches for the massive, complex optimization problems of the future.</p>
+          </div>
+        </div>
         <SolverCard 
             title="Classical Solver (Dijkstra)" 
             result={taskStatus.classical_result} 
-            isLoading={!taskStatus.classical_result && taskStatus.status !== 'idle'}
+            isLoading={!taskStatus.classical_result && (taskStatus.status === 'running' || taskStatus.status === 'pending')}
             statusText={getStatusText('classical')}
         />
         <SolverCard 
             title="Quantum Solver (QAOA)" 
             result={taskStatus.quantum_result} 
-            isLoading={!taskStatus.quantum_result && taskStatus.status !== 'idle'}
+            isLoading={!taskStatus.quantum_result && (taskStatus.status === 'running' || taskStatus.status === 'pending')}
             statusText={getStatusText('quantum')}
         />
-      </div>
+      </main>
     </div>
   );
 }
+
 export default App;
