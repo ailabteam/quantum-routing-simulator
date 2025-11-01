@@ -4,19 +4,20 @@ import ReactFlow, { Background, Controls, Edge, Node } from 'reactflow';
 import 'reactflow/dist/style.css';
 
 interface NetworkDisplayProps {
-  network: { nodes: any[], edges: [number, number, { weight: number }][] };
+  // networkX to_dict_of_dicts() format
+  network: { nodes: any[], edges: [number, number, { weight: number }][] }; 
   path: number[] | null;
 }
 
 const NetworkDisplay = ({ network, path }: NetworkDisplayProps) => {
-  // Chuyển đổi dữ liệu từ NetworkX (dict) sang định dạng của React Flow
-  const nodes: Node[] = network.nodes.map((node, i) => ({
+  // SỬA LỖI Ở ĐÂY: Thay 'node' bằng '_'
+  const nodes: Node[] = network.nodes.map((_, i) => ({
     id: String(i),
     position: { x: (i % 4) * 150, y: Math.floor(i / 4) * 150 },
     data: { label: `Node ${i}` },
   }));
 
-  const pathEdges = new Set();
+  const pathEdges = new Set<string>();
   if (path) {
     for (let i = 0; i < path.length - 1; i++) {
       pathEdges.add(`${path[i]}-${path[i+1]}`);
@@ -29,10 +30,10 @@ const NetworkDisplay = ({ network, path }: NetworkDisplayProps) => {
     source: String(u),
     target: String(v),
     label: String(data.weight),
-    animated: pathEdges.has(`${u}-${v}`),
+    animated: pathEdges.has(`${u}-${v}`) || pathEdges.has(`${v}-${u}`),
     style: { 
-        stroke: pathEdges.has(`${u}-${v}`) ? '#ff0072' : '#aaa',
-        strokeWidth: pathEdges.has(`${u}-${v}`) ? 3 : 1,
+        stroke: pathEdges.has(`${u}-${v}`) || pathEdges.has(`${v}-${u}`) ? '#ff0072' : '#aaa',
+        strokeWidth: pathEdges.has(`${u}-${v}`) || pathEdges.has(`${v}-${u}`) ? 3 : 1,
     },
   }));
 
@@ -45,4 +46,5 @@ const NetworkDisplay = ({ network, path }: NetworkDisplayProps) => {
     </div>
   );
 };
+
 export default memo(NetworkDisplay);
