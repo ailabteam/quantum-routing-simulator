@@ -1,6 +1,8 @@
 // src/App.tsx
 import { useState, useEffect, useRef } from 'react';
 import NetworkDisplay from './components/NetworkDisplay';
+import ResultAnalysis from './components/ResultAnalysis';
+
 import './App.css';
 
 // --- Định nghĩa các Kiểu dữ liệu ---
