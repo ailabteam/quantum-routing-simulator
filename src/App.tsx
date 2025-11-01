@@ -42,8 +42,8 @@ function App() {
     const currentProblem = { num_nodes: 5, start_node: 0, end_node: 4 };
     setProblem(currentProblem);
 
-    fetch('/api/solve-routing', { 
-        method: 'POST', 
+    fetch('/api/solve-routing', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(currentProblem)
     })
@@ -68,7 +68,7 @@ function App() {
         if (intervalRef.current) clearInterval(intervalRef.current);
         return;
     }
-    
+
     intervalRef.current = window.setInterval(() => {
         console.log(`Polling status for task: ${taskId}`);
         fetch(`/api/get-status/${taskId}`)
@@ -79,7 +79,7 @@ function App() {
         .then((data: TaskStatus) => {
             console.log("Received status update:", data);
             setTaskStatus(data);
-            
+
             if (data.status === 'finished' || data.status === 'failed') {
                 if (intervalRef.current) clearInterval(intervalRef.current);
             }
@@ -98,11 +98,11 @@ function App() {
     if (taskStatus.status === 'idle') return 'Waiting to start...';
     if (taskStatus.status === 'pending') return 'Initializing task...';
     if (taskStatus.status === 'failed') return `Task Failed: ${taskStatus.error_message || 'Unknown Error'}`;
-    
+
     if (solverType === 'classical') {
         return taskStatus.classical_result ? 'Completed!' : 'Solving...';
     }
-    
+
     if (solverType === 'quantum') {
         if (taskStatus.quantum_result) return 'Completed!';
         if (taskStatus.current_step === 'RUNNING_QUANTUM') return 'Running Quantum Simulation (~6 mins)...';
@@ -118,8 +118,8 @@ function App() {
       <h2>{title}</h2>
       <div className="graph-container">
         {taskStatus.network ? (
-            <NetworkDisplay 
-                network={taskStatus.network} 
+            <NetworkDisplay
+                network={taskStatus.network}
                 path={result?.path || null}
                 startNode={problem.start_node}
                 endNode={problem.end_node}
@@ -139,6 +139,7 @@ function App() {
         <strong>Cost:</strong> {result?.cost ?? 'N/A'}<br/>
         <strong>Time:</strong> {result?.execution_time ? `${result.execution_time.toFixed(4)}s` : 'N/A'}
       </div>
+      {result && <ResultAnalysis result={result} />}
     </div>
   );
 
@@ -164,15 +165,15 @@ function App() {
             <p>This PoC highlights the current state of quantum computing: while classical algorithms are superior for many current problems, this platform allows us to research and benchmark quantum approaches for the massive, complex optimization problems of the future.</p>
           </div>
         </div>
-        <SolverCard 
-            title="Classical Solver (Dijkstra)" 
-            result={taskStatus.classical_result} 
+        <SolverCard
+            title="Classical Solver (Dijkstra)"
+            result={taskStatus.classical_result}
             isLoading={!taskStatus.classical_result && (taskStatus.status === 'running' || taskStatus.status === 'pending')}
             statusText={getStatusText('classical')}
         />
-        <SolverCard 
-            title="Quantum Solver (QAOA)" 
-            result={taskStatus.quantum_result} 
+        <SolverCard
+            title="Quantum Solver (QAOA)"
+            result={taskStatus.quantum_result}
             isLoading={!taskStatus.quantum_result && (taskStatus.status === 'running' || taskStatus.status === 'pending')}
             statusText={getStatusText('quantum')}
         />
